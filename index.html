@@ -13,7 +13,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Controle">
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- SDK Supabase Oficial CDN -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
 <style>
 *{box-sizing:border-box;font-family:system-ui}
 body{margin:0;background:#0f1115;color:#e8e8e8;padding:16px;max-width:480px;margin:auto}
@@ -104,10 +106,22 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
 </div>
 
 <script>
-const SUPABASE_URL = 'Https://ectrvieffyfkbsttliwj.supabase.co';
+// URL corrigida sem 'H' maiúsculo
+const SUPABASE_URL = 'https://ectrvieffyfkbsttliwj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_aS4pis5Cve9JBPe7Nv-r1g_4XFZW8qe';
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabaseClient = null;
+
+// Inicialização segura do cliente Supabase
+try {
+  if (window.supabase) {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } else {
+    document.getElementById('auth-msg').textContent = 'Erro ao carregar banco de dados. Recarregue a página.';
+  }
+} catch (err) {
+  console.error('Erro no Supabase:', err);
+}
 
 const $=id=>document.getElementById(id);$('data').valueAsDate = new Date();
 
@@ -115,21 +129,18 @@ let usuarioAtual = null;
 let cacheDias = [];
 let modoAuth = 'login';
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('data:application/javascript,self.addEventListener("fetch",function(e){});');
-}
-
 function traduzirErro(mensagemOriginal) {
   if (!mensagemOriginal) return 'Ocorreu um erro inesperado. Tente novamente.';
   const msg = mensagemOriginal.toLowerCase();
-  if (msg.includes('invalid login credentials')) return 'E-mail ou palavra-passe incorretos.';
-  if (msg.includes('user already registered')) return 'Este e-mail já está registado.';
-  if (msg.includes('password should be at least')) return 'A palavra-passe deve ter pelo menos 6 caracteres.';
+  if (msg.includes('invalid login credentials')) return 'E-mail ou senha incorretos.';
+  if (msg.includes('user already registered')) return 'Este e-mail já está cadastrado.';
+  if (msg.includes('password should be at least')) return 'A senha deve ter pelo menos 6 caracteres.';
   if (msg.includes('email not confirmed')) return 'E-mail ainda não confirmado.';
   return 'Erro: ' + mensagemOriginal;
 }
 
 async function checarSessao() {
+  if (!supabaseClient) return;
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
     usuarioAtual = session.user;
@@ -180,18 +191,22 @@ function mudarModoAuth(modo) {
 }
 
 async function executarAuth() {
+  if (!supabaseClient) {
+    alert('Aguarde o carregamento do sistema e tente novamente.');
+    return;
+  }
   const email = $('email').value.trim();
   const password = $('password').value;
   const msg = $('auth-msg');
 
   if (!email || !password) {
     msg.style.color = '#ff8a8a';
-    msg.textContent = 'Por favor, preencha o e-mail e a palavra-passe.';
+    msg.textContent = 'Por favor, preencha o e-mail e a senha.';
     return;
   }
 
   msg.style.color = '#60a5fa';
-  msg.textContent = 'Carregando. Aguarde...';
+  msg.textContent = 'A carregar...';
 
   if (modoAuth === 'login') {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -216,7 +231,7 @@ async function executarAuth() {
 }
 
 async function fazerLogout() {
-  await supabaseClient.auth.signOut();
+  if (supabaseClient) await supabaseClient.auth.signOut();
   usuarioAtual = null;
   mostrarAuth();
 }
@@ -239,7 +254,6 @@ function calc(){
 }
 ['bruto','km','comb','alim','outros','bonus'].forEach(id=>$(id).addEventListener('input',calc));
 
-// Verifica se já existe registo para a data selecionada e preenche os inputs
 function verificarDataSelecionada() {
   const dataVal = $('data').value;
   const diaExistente = cacheDias.find(d => d.data === dataVal);
@@ -250,11 +264,11 @@ function verificarDataSelecionada() {
     $('alim').value = diaExistente.alim;
     $('outros').value = diaExistente.outros;
     $('bonus').value = diaExistente.bonus || 0;
-    $('btn-salvar').textContent = 'Atualizar este dia';$('btn-salvar').style.background = '#eab308'; // Amarelo/Laranja indicando edição
+    $('btn-salvar').textContent = 'Atualizar este dia';$('btn-salvar').style.background = '#eab308';
     $('btn-salvar').style.color = '#000';
   } else {
     ['bruto','km','comb','alim','outros','bonus'].forEach(id=>$(id).value='');
-    $('btn-salvar').textContent = 'Salvar dia';$('btn-salvar').style.background = '#2d7dff'; // Azul original
+    $('btn-salvar').textContent = 'Salvar dia';$('btn-salvar').style.background = '#2d7dff';
     $('btn-salvar').style.color = '#fff';
   }
   calc();
@@ -265,12 +279,10 @@ async function salvar(){
   if(!c.bruto){alert('Informe o valor bruto.');return}
   const dataVal=$('data').value||new Date().toISOString().slice(0,10);
   
-  // Verifica se já existe registo na cache para esta data
   const diaExistente = cacheDias.find(d => d.data === dataVal);
 
   let error;
   if (diaExistente) {
-    // Atualiza o registo existente (UPDATE)
     const res = await supabaseClient
       .from('controle_dias')
       .update({
@@ -289,7 +301,6 @@ async function salvar(){
       .eq('user_id', usuarioAtual.id);
     error = res.error;
   } else {
-    // Insere um novo registo (INSERT)
     const res = await supabaseClient
       .from('controle_dias')
       .insert([{
@@ -322,6 +333,7 @@ async function salvar(){
 }
 
 async function carregarDados() {
+  if (!supabaseClient) return;
   const { data, error } = await supabaseClient
     .from('controle_dias')
     .select('*')
@@ -334,7 +346,7 @@ async function carregarDados() {
 
   cacheDias = data || [];
   render();
-  verificarDataSelecionada(); // Garante checagem caso a data atual já tenha dados
+  verificarDataSelecionada();
 }
 
 function render(){
