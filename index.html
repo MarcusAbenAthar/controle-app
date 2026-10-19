@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0f1115">
 <title>Controle Diario</title>
+
+<!-- PWA & Ícones -->
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Controle">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;font-family:system-ui}
@@ -16,7 +24,6 @@ input{width:100%;padding:12px;border-radius:10px;border:1px solid #2a2e39;backgr
 .row{display:flex;gap:10px}.row>div{flex:1}
 .btn{width:100%;padding:14px;border-radius:12px;border:0;background:#2d7dff;color:#fff;font-weight:700;margin-top:14px;cursor:pointer}
 .btn-sec{background:#1f232e;margin-top:8px}
-.btn-danger{background:#2a1212;color:#ff8a8a;margin-top:8px}
 .metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .metric{background:#10131a;border-radius:12px;padding:12px;border:1px solid #2a2e39}
 .metric b{display:block;font-size:10px;color:#9aa0a6}
@@ -89,7 +96,6 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
 </div>
 
 <script>
-// CONFIGURAÇÃO DO SUPABASE INTEGRADAS
 const SUPABASE_URL = 'Https://ectrvieffyfkbsttliwj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_aS4pis5Cve9JBPe7Nv-r1g_4XFZW8qe';
 
@@ -100,7 +106,11 @@ const $=id=>document.getElementById(id);$('data').valueAsDate = new Date();
 let usuarioAtual = null;
 let cacheDias = [];
 
-// Checar sessão ao carregar
+// Registrar Service Worker simples para liberar a instalação nativa PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('data:application/javascript,self.addEventListener("fetch",()=>{})');
+}
+
 async function checarSessao() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
@@ -227,3 +237,21 @@ function render(){
     tr.innerHTML=`<td>${dataFmt.slice(0,5)}<br><span class=small>${d.km}km</span></td><td>R$ ${Number(d.bruto).toFixed(0)}</td><td style=color:#4ade80>R$ ${Number(d.liquido).toFixed(0)}</td><td>R$ ${Number(d.liquido_km).toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
+  $('totalAcum').textContent=cacheDias.length?` Total liq R$ ${tLiq.toFixed(0)} em ${tKm}km` :'';
+}
+
+function exportar(){
+  if(!cacheDias.length){alert('Nada pra exportar');return}
+  let txt='*Controle Diario*\n\n';
+  cacheDias.forEach(d=>{
+    txt+=`📅 ${d.data} - Bruto R$${d.bruto} | Comb R$${d.comb} | Alim R$${d.alim} | Outros R$${d.outros} | Gasto R$${d.gasto} | Liq R$${Number(d.liquido).toFixed(2)} | ${d.km}km | R$/km R$${Number(d.liquido_km).toFixed(2)}\n`;
+  });
+  const totalLiq = cacheDias.reduce((a,b)=>a+Number(b.liquido),0);
+  txt+=`\n💰 Total liquido: R$ ${totalLiq.toFixed(2)}`;
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+}
+
+calc();
+</script>
+</body>
+</html>
