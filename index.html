@@ -116,9 +116,42 @@ let usuarioAtual = null;
 let cacheDias = [];
 let modoAuth = 'login';
 
-// Registrar Service Worker para habilitar o PWA
+// Registrar Service Worker para PWA (arquivo sw.js)
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('data:application/javascript,self.addEventListener("fetch",()=>{})');
+  navigator.serviceWorker.register('./sw.js')
+    .then(() => console.log('Service Worker Registrado!'))
+    .catch((err) => console.error('Erro no SW:', err));
+}
+
+// Função auxiliar para traduzir mensagens de erro do Supabase
+function traduzirErro(mensagemOriginal) {
+  if (!mensagemOriginal) return 'Ocorreu um erro inesperado. Tente novamente.';
+  
+  const msg = mensagemOriginal.toLowerCase();
+  
+  if (msg.includes('invalid login credentials')) {
+    return 'E-mail ou palavra-passe incorretos.';
+  }
+  if (msg.includes('user already registered')) {
+    return 'Este e-mail já está registado. Alterne para a aba "Entrar".';
+  }
+  if (msg.includes('password should be at least')) {
+    return 'A palavra-passe deve ter pelo menos 6 caracteres.';
+  }
+  if (msg.includes('email not confirmed')) {
+    return 'E-mail ainda não confirmado. Verifique a sua caixa de entrada.';
+  }
+  if (msg.includes('rate limit exceeded') || msg.includes('too many requests')) {
+    return 'Muitas tentativas seguidas. Aguarde alguns instantes e tente novamente.';
+  }
+  if (msg.includes('anonymous sign-ins are disabled')) {
+    return 'Preencha o e-mail e a palavra-passe para continuar.';
+  }
+  if (msg.includes('invalid email') || msg.includes('unable to validate email')) {
+    return 'Por favor, insira um endereço de e-mail válido.';
+  }
+
+  return 'Erro: ' + mensagemOriginal;
 }
 
 async function checarSessao() {
@@ -184,18 +217,18 @@ async function executarAuth() {
 
   if (!email || !password) {
     msg.style.color = '#ff8a8a';
-    msg.textContent = 'Preencha o e-mail e a senha.';
+    msg.textContent = 'Por favor, preencha o e-mail e a palavra-passe.';
     return;
   }
 
   msg.style.color = '#60a5fa';
-  msg.textContent = 'Carregando...';
+  msg.textContent = 'A carregar...';
 
   if (modoAuth === 'login') {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) {
       msg.style.color = '#ff8a8a';
-      msg.textContent = 'Erro ao entrar: ' + error.message;
+      msg.textContent = traduzirErro(error.message);
     } else {
       usuarioAtual = data.user;
       mostrarApp();
@@ -204,10 +237,10 @@ async function executarAuth() {
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
     if (error) {
       msg.style.color = '#ff8a8a';
-      msg.textContent = 'Erro ao cadastrar: ' + error.message;
+      msg.textContent = traduzirErro(error.message);
     } else {
       msg.style.color = '#4ade80';
-      msg.textContent = 'Conta criada com sucesso! Mude para a aba "Entrar" para acessar.';
+      msg.textContent = 'Conta criada com sucesso! Já pode entrar com os seus dados.';
       mudarModoAuth('login');
     }
   }
@@ -239,7 +272,7 @@ function calc(){
 
 async function salvar(){
   const c=calc();
-  if(!c.bruto){alert('Informe o valor bruto');return}
+  if(!c.bruto){alert('Informe o valor bruto.');return}
   const dataVal=$('data').value||new Date().toISOString().slice(0,10);
   
   const { error } = await supabaseClient
@@ -260,7 +293,7 @@ async function salvar(){
     }]);
 
   if(error) {
-    alert('Erro ao salvar: ' + error.message);
+    alert('Erro ao guardar os dados: ' + traduzirErro(error.message));
     return;
   }
 
@@ -276,7 +309,7 @@ async function carregarDados() {
     .order('data', { ascending: false });
 
   if(error) {
-    console.error('Erro ao carregar', error);
+    console.error('Erro ao carregar dados:', error);
     return;
   }
 
@@ -300,7 +333,7 @@ function render(){
 }
 
 function exportar(){
-  if(!cacheDias.length){alert('Nenhum dado para exportar');return}
+  if(!cacheDias.length){alert('Nenhum dado para exportar.');return}
   let txt='*Controle Diário*\n\n';
   cacheDias.forEach(d=>{
     txt+=`📅 ${d.data} - Bruto R$${d.bruto} | Comb R$${d.comb} | Alim R$${d.alim} | Outros R$${d.outros} | Gasto R$${d.gasto} | Líq R$${Number(d.liquido).toFixed(2)} | ${d.km}km | R$/km R$${Number(d.liquido_km).toFixed(2)}\n`;
