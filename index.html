@@ -89,9 +89,9 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
 </div>
 
 <script>
-// CONFIGURAÇÃO DO SUPABASE (Insira suas chaves aqui)
-const SUPABASE_URL = 'SUA_URL_DO_SUPABASE_AQUI';
-const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_DO_SUPABASE_AQUI';
+// CONFIGURAÇÃO DO SUPABASE INTEGRADAS
+const SUPABASE_URL = 'Https://ectrvieffyfkbsttliwj.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_aS4pis5Cve9JBPe7Nv-r1g_4XFZW8qe';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -140,7 +140,7 @@ async function fazerCadastro() {
   if (error) {
     $('auth-msg').textContent = error.message;
   } else {
-    alert('Conta criada com sucesso! Se necessário, confirme seu e-mail ou faça login.');
+    alert('Conta criada com sucesso! Você já pode fazer o login.');
   }
 }
 
@@ -227,22 +227,3 @@ function render(){
     tr.innerHTML=`<td>${dataFmt.slice(0,5)}<br><span class=small>${d.km}km</span></td><td>R$ ${Number(d.bruto).toFixed(0)}</td><td style=color:#4ade80>R$ ${Number(d.liquido).toFixed(0)}</td><td>R$ ${Number(d.liquido_km).toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
-  $('totalAcum').textContent=cacheDias.length?` Total liq R$ ${tLiq.toFixed(0)} em ${tKm}km` :'';
-}
-
-function exportar(){
-  if(!cacheDias.length){alert('Nada pra exportar');return}
-  let txt='*Controle Diario*\n\n';
-  cacheDias.forEach(d=>{
-    txt+=`📅 ${d.data} - Bruto R$${d.bruto} | Comb R$${d.comb} | Alim R$${d.alim} | Outros R$${d.outros} | Gasto R$${d.gasto} | Liq R$${Number(d.liquido).toFixed(2)} | ${d.km}km | R$/km R$${Number(d.liquido_km).toFixed(2)}\n`;
-  });
-  const totalLiq = cacheDias.reduce((a,b)=>a+Number(b.liquido),0);
-  txt+=`\n💰 Total liquido: R$ ${totalLiq.toFixed(2)}`;
-  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
-}
-
-calc();
-</script>
-</body>
-  </html>
-  
