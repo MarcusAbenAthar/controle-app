@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0f1115">
-<title>Controle Diario</title>
+<title>Controle Diário</title>
 
 <!-- PWA & Ícones -->
 <link rel="manifest" href="manifest.json">
@@ -17,7 +17,7 @@
 <style>
 *{box-sizing:border-box;font-family:system-ui}
 body{margin:0;background:#0f1115;color:#e8e8e8;padding:16px;max-width:480px;margin:auto}
-h1{font-size:22px}.sub{color:#9aa0a6;font-size:13px;margin-bottom:16px}
+h1{font-size:22px;margin-top:0}.sub{color:#9aa0a6;font-size:13px;margin-bottom:16px}
 .card{background:#1a1d24;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid #2a2e39}
 label{font-size:12px;color:#9aa0a6;display:block;margin:10px 0 4px}
 input{width:100%;padding:12px;border-radius:10px;border:1px solid #2a2e39;background:#10131a;color:#fff;font-size:15px}
@@ -38,26 +38,35 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
 </head>
 <body>
 
-<!-- TELA DE LOGIN -->
+<!-- TELA DE AUTENTICAÇÃO (LOGIN / CADASTRO) -->
 <div id="auth-screen" class="card">
-  <h1>🔐 Entrar no Sistema</h1>
-  <div class="sub">Informe seu e-mail e senha para acessar seus dados na nuvem.</div>
+  <!-- Alternador de Aba -->
+  <div style="display:flex; background:#10131a; padding:4px; border-radius:10px; margin-bottom:16px; border:1px solid #2a2e39;">
+    <button id="tab-login" onclick="mudarModoAuth('login')" style="flex:1; padding:10px; border:0; border-radius:8px; background:#2d7dff; color:#fff; font-weight:bold; cursor:pointer;">Entrar</button>
+    <button id="tab-signup" onclick="mudarModoAuth('signup')" style="flex:1; padding:10px; border:0; border-radius:8px; background:transparent; color:#9aa0a6; font-weight:bold; cursor:pointer;">Criar Conta</button>
+  </div>
+
+  <h1 id="auth-title">🔐 Entrar no Sistema</h1>
+  <div class="sub" id="auth-sub">Informe seu e-mail e senha para acessar seus dados na nuvem.</div>
+
   <label>E-mail</label>
   <input type="email" id="email" placeholder="seu@email.com">
+
   <label>Senha</label>
   <input type="password" id="password" placeholder="Sua senha">
-  <button class="btn" onclick="fazerLogin()">Entrar</button>
-  <button class="btn btn-sec" onclick="fazerCadastro()">Criar conta</button>
-  <div id="auth-msg" class="small" style="color:#ff8a8a;margin-top:10px;text-align:center;"></div>
+
+  <button class="btn" id="btn-auth-submit" onclick="executarAuth()">Entrar</button>
+
+  <div id="auth-msg" class="small" style="margin-top:12px; text-align:center;"></div>
 </div>
 
 <!-- TELA DO APLICATIVO -->
 <div id="app-screen" class="hidden">
   <div style="display:flex; justify-content:space-between; align-items:center;">
-    <h1>🚗 Controle Diario</h1>
+    <h1>🚗 Controle Diário</h1>
     <button onclick="fazerLogout()" style="background:none;border:0;color:#ff8a8a;cursor:pointer;font-weight:bold;">Sair</button>
   </div>
-  <div class="sub">Bruto • Combustivel • Alimentacao • KM • Nuvem</div>
+  <div class="sub">Bruto • Combustível • Alimentação • KM • Nuvem</div>
   
   <div class="card">
     <label>Data</label><input type="date" id="data">
@@ -66,17 +75,17 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
       <div><label>KM Rodado</label><input type="number" id="km" placeholder="120"></div>
     </div>
     <div class="row">
-      <div><label>Combustivel R$</label><input type="number" id="comb" placeholder="30"></div>
-      <div><label>Alimentacao R$</label><input type="number" id="alim" placeholder="15"></div>
+      <div><label>Combustível R$</label><input type="number" id="comb" placeholder="30"></div>
+      <div><label>Alimentação R$</label><input type="number" id="alim" placeholder="15"></div>
     </div>
     <div class="row">
       <div><label>Outros R$</label><input type="number" id="outros" placeholder="0"></div>
-      <div><label>Outros Apps/Bonus R$</label><input type="number" id="bonus" placeholder="0"></div>
+      <div><label>Outros Apps/Bônus R$</label><input type="number" id="bonus" placeholder="0"></div>
     </div>
     <div class="metrics">
       <div class="metric blue"><b>R$ por KM Bruto</b><span id="m_bruto_km">R$ 0,00</span></div>
-      <div class="metric green"><b>Liquido</b><span id="m_liquido">R$ 0,00</span></div>
-      <div class="metric orange"><b>R$ por KM Liq</b><span id="m_liquido_km">R$ 0,00</span></div>
+      <div class="metric green"><b>Líquido</b><span id="m_liquido">R$ 0,00</span></div>
+      <div class="metric orange"><b>R$ por KM Líq</b><span id="m_liquido_km">R$ 0,00</span></div>
       <div class="metric"><b>Total Gasto</b><span id="m_gasto">R$ 0,00</span></div>
     </div>
     <button class="btn" onclick="salvar()">Salvar dia</button>
@@ -84,14 +93,14 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
 
   <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-      <b>Historico</b>
+      <b>Histórico</b>
       <span class="small" id="totalAcum"></span>
     </div>
     <table>
-      <thead><tr><th>Data</th><th>Bruto</th><th>Liq</th><th>R$/km</th></tr></thead>
+      <thead><tr><th>Data</th><th>Bruto</th><th>Líq</th><th>R$/km</th></tr></thead>
       <tbody id="tbody"></tbody>
     </table>
-    <button class="btn btn-sec" onclick="exportar()">Exportar pro WhatsApp</button>
+    <button class="btn btn-sec" onclick="exportar()">Exportar para o WhatsApp</button>
   </div>
 </div>
 
@@ -105,8 +114,9 @@ const $=id=>document.getElementById(id);$('data').valueAsDate = new Date();
 
 let usuarioAtual = null;
 let cacheDias = [];
+let modoAuth = 'login';
 
-// Registrar Service Worker simples para liberar a instalação nativa PWA
+// Registrar Service Worker para habilitar o PWA
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('data:application/javascript,self.addEventListener("fetch",()=>{})');
 }
@@ -131,26 +141,75 @@ function mostrarApp() {
   carregarDados();
 }
 
-async function fazerLogin() {
-  const email = $('email').value;
-  const password = $('password').value;
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) {
-    $('auth-msg').textContent = error.message;
+function mudarModoAuth(modo) {
+  modoAuth = modo;
+  const tabLogin = $('tab-login');
+  const tabSignup = $('tab-signup');
+  const title = $('auth-title');
+  const sub = $('auth-sub');
+  const btn = $('btn-auth-submit');
+  const msg = $('auth-msg');
+
+  msg.textContent = '';
+
+  if (modo === 'login') {
+    tabLogin.style.background = '#2d7dff';
+    tabLogin.style.color = '#fff';
+    tabSignup.style.background = 'transparent';
+    tabSignup.style.color = '#9aa0a6';
+
+    title.textContent = '🔐 Entrar no Sistema';
+    sub.textContent = 'Informe seu e-mail e senha para acessar seus dados na nuvem.';
+    btn.textContent = 'Entrar';
+    btn.style.background = '#2d7dff';
+    btn.style.color = '#fff';
   } else {
-    usuarioAtual = data.user;
-    mostrarApp();
+    tabSignup.style.background = '#2d7dff';
+    tabSignup.style.color = '#fff';
+    tabLogin.style.background = 'transparent';
+    tabLogin.style.color = '#9aa0a6';
+
+    title.textContent = '📝 Criar Nova Conta';
+    sub.textContent = 'Crie sua conta para guardar seus ganhos e relatórios na nuvem.';
+    btn.textContent = 'Criar Conta';
+    btn.style.background = '#4ade80';
+    btn.style.color = '#000';
   }
 }
 
-async function fazerCadastro() {
-  const email = $('email').value;
+async function executarAuth() {
+  const email = $('email').value.trim();
   const password = $('password').value;
-  const { data, error } = await supabaseClient.auth.signUp({ email, password });
-  if (error) {
-    $('auth-msg').textContent = error.message;
+  const msg = $('auth-msg');
+
+  if (!email || !password) {
+    msg.style.color = '#ff8a8a';
+    msg.textContent = 'Preencha o e-mail e a senha.';
+    return;
+  }
+
+  msg.style.color = '#60a5fa';
+  msg.textContent = 'Carregando...';
+
+  if (modoAuth === 'login') {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      msg.style.color = '#ff8a8a';
+      msg.textContent = 'Erro ao entrar: ' + error.message;
+    } else {
+      usuarioAtual = data.user;
+      mostrarApp();
+    }
   } else {
-    alert('Conta criada com sucesso! Você já pode fazer o login.');
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    if (error) {
+      msg.style.color = '#ff8a8a';
+      msg.textContent = 'Erro ao cadastrar: ' + error.message;
+    } else {
+      msg.style.color = '#4ade80';
+      msg.textContent = 'Conta criada com sucesso! Mude para a aba "Entrar" para acessar.';
+      mudarModoAuth('login');
+    }
   }
 }
 
@@ -180,7 +239,7 @@ function calc(){
 
 async function salvar(){
   const c=calc();
-  if(!c.bruto){alert('Coloca o bruto');return}
+  if(!c.bruto){alert('Informe o valor bruto');return}
   const dataVal=$('data').value||new Date().toISOString().slice(0,10);
   
   const { error } = await supabaseClient
@@ -237,17 +296,17 @@ function render(){
     tr.innerHTML=`<td>${dataFmt.slice(0,5)}<br><span class=small>${d.km}km</span></td><td>R$ ${Number(d.bruto).toFixed(0)}</td><td style=color:#4ade80>R$ ${Number(d.liquido).toFixed(0)}</td><td>R$ ${Number(d.liquido_km).toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
-  $('totalAcum').textContent=cacheDias.length?` Total liq R$ ${tLiq.toFixed(0)} em ${tKm}km` :'';
+  $('totalAcum').textContent=cacheDias.length?` Total líq R$ ${tLiq.toFixed(0)} em ${tKm}km` :'';
 }
 
 function exportar(){
-  if(!cacheDias.length){alert('Nada pra exportar');return}
-  let txt='*Controle Diario*\n\n';
+  if(!cacheDias.length){alert('Nenhum dado para exportar');return}
+  let txt='*Controle Diário*\n\n';
   cacheDias.forEach(d=>{
-    txt+=`📅 ${d.data} - Bruto R$${d.bruto} | Comb R$${d.comb} | Alim R$${d.alim} | Outros R$${d.outros} | Gasto R$${d.gasto} | Liq R$${Number(d.liquido).toFixed(2)} | ${d.km}km | R$/km R$${Number(d.liquido_km).toFixed(2)}\n`;
+    txt+=`📅 ${d.data} - Bruto R$${d.bruto} | Comb R$${d.comb} | Alim R$${d.alim} | Outros R$${d.outros} | Gasto R$${d.gasto} | Líq R$${Number(d.liquido).toFixed(2)} | ${d.km}km | R$/km R$${Number(d.liquido_km).toFixed(2)}\n`;
   });
   const totalLiq = cacheDias.reduce((a,b)=>a+Number(b.liquido),0);
-  txt+=`\n💰 Total liquido: R$ ${totalLiq.toFixed(2)}`;
+  txt+=`\n💰 Total líquido: R$ ${totalLiq.toFixed(2)}`;
   window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
 }
 
