@@ -68,7 +68,7 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
   <div class="sub">Bruto • Combustível • Alimentação • KM • Nuvem</div>
   
   <div class="card">
-    <label>Data</label><input type="date" id="data">
+    <label>Data</label><input type="date" id="data" onchange="verificarDataSelecionada()">
     <div class="row">
       <div><label>Valor Bruto R$</label><input type="number" id="bruto" placeholder="85"></div>
       <div><label>KM Rodado</label><input type="number" id="km" placeholder="120"></div>
@@ -87,7 +87,7 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
       <div class="metric orange"><b>R$ por KM Líq</b><span id="m_liquido_km">R$ 0,00</span></div>
       <div class="metric"><b>Total Gasto</b><span id="m_gasto">R$ 0,00</span></div>
     </div>
-    <button class="btn" onclick="salvar()">Salvar dia</button>
+    <button class="btn" id="btn-salvar" onclick="salvar()">Salvar dia</button>
   </div>
 
   <div class="card">
@@ -115,7 +115,6 @@ let usuarioAtual = null;
 let cacheDias = [];
 let modoAuth = 'login';
 
-// Registo otimizado de Service Worker inline para PWA no GitHub Pages
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('data:application/javascript,self.addEventListener("fetch",function(e){});');
 }
@@ -124,11 +123,9 @@ function traduzirErro(mensagemOriginal) {
   if (!mensagemOriginal) return 'Ocorreu um erro inesperado. Tente novamente.';
   const msg = mensagemOriginal.toLowerCase();
   if (msg.includes('invalid login credentials')) return 'E-mail ou palavra-passe incorretos.';
-  if (msg.includes('user already registered')) return 'Este e-mail já está registado. Alterne para a aba "Entrar".';
+  if (msg.includes('user already registered')) return 'Este e-mail já está registado.';
   if (msg.includes('password should be at least')) return 'A palavra-passe deve ter pelo menos 6 caracteres.';
-  if (msg.includes('email not confirmed')) return 'E-mail ainda não confirmado. Verifique a sua caixa de entrada.';
-  if (msg.includes('rate limit exceeded') || msg.includes('too many requests')) return 'Muitas tentativas. Aguarde alguns instantes.';
-  if (msg.includes('invalid email')) return 'Por favor, insira um endereço de e-mail válido.';
+  if (msg.includes('email not confirmed')) return 'E-mail ainda não confirmado.';
   return 'Erro: ' + mensagemOriginal;
 }
 
@@ -168,23 +165,17 @@ function mudarModoAuth(modo) {
     tabLogin.style.color = '#fff';
     tabSignup.style.background = 'transparent';
     tabSignup.style.color = '#9aa0a6';
-
     title.textContent = '🔐 Entrar no Sistema';
     sub.textContent = 'Informe seu e-mail e senha para acessar seus dados na nuvem.';
     btn.textContent = 'Entrar';
-    btn.style.background = '#2d7dff';
-    btn.style.color = '#fff';
   } else {
     tabSignup.style.background = '#2d7dff';
     tabSignup.style.color = '#fff';
     tabLogin.style.background = 'transparent';
     tabLogin.style.color = '#9aa0a6';
-
     title.textContent = '📝 Criar Nova Conta';
     sub.textContent = 'Crie sua conta para guardar seus ganhos e relatórios na nuvem.';
     btn.textContent = 'Criar Conta';
-    btn.style.background = '#4ade80';
-    btn.style.color = '#000';
   }
 }
 
@@ -200,7 +191,7 @@ async function executarAuth() {
   }
 
   msg.style.color = '#60a5fa';
-  msg.textContent = 'A carregar...';
+  msg.textContent = 'Carregando. Aguarde...';
 
   if (modoAuth === 'login') {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -218,7 +209,7 @@ async function executarAuth() {
       msg.textContent = traduzirErro(error.message);
     } else {
       msg.style.color = '#4ade80';
-      msg.textContent = 'Conta criada com sucesso! Já pode entrar com os seus dados.';
+      msg.textContent = 'Conta criada com sucesso! Já pode entrar.';
       mudarModoAuth('login');
     }
   }
@@ -248,27 +239,75 @@ function calc(){
 }
 ['bruto','km','comb','alim','outros','bonus'].forEach(id=>$(id).addEventListener('input',calc));
 
+// Verifica se já existe registo para a data selecionada e preenche os inputs
+function verificarDataSelecionada() {
+  const dataVal = $('data').value;
+  const diaExistente = cacheDias.find(d => d.data === dataVal);
+  
+  if (diaExistente) {
+    $('bruto').value = diaExistente.bruto - (diaExistente.bonus \vert{}\vert{} 0);$('km').value = diaExistente.km;
+    $('comb').value = diaExistente.comb;
+    $('alim').value = diaExistente.alim;
+    $('outros').value = diaExistente.outros;
+    $('bonus').value = diaExistente.bonus || 0;
+    $('btn-salvar').textContent = 'Atualizar este dia';$('btn-salvar').style.background = '#eab308'; // Amarelo/Laranja indicando edição
+    $('btn-salvar').style.color = '#000';
+  } else {
+    ['bruto','km','comb','alim','outros','bonus'].forEach(id=>$(id).value='');
+    $('btn-salvar').textContent = 'Salvar dia';$('btn-salvar').style.background = '#2d7dff'; // Azul original
+    $('btn-salvar').style.color = '#fff';
+  }
+  calc();
+}
+
 async function salvar(){
   const c=calc();
   if(!c.bruto){alert('Informe o valor bruto.');return}
   const dataVal=$('data').value||new Date().toISOString().slice(0,10);
   
-  const { error } = await supabaseClient
-    .from('controle_dias')
-    .insert([{
-      user_id: usuarioAtual.id,
-      data: dataVal,
-      bruto: c.bruto,
-      km: c.km,
-      comb: c.comb,
-      alim: c.alim,
-      outros: c.outros,
-      bonus: c.bonus,
-      gasto: c.gasto,
-      liquido: c.liquido,
-      bruto_km: c.brutoKm,
-      liquido_km: c.liquidoKm
-    }]);
+  // Verifica se já existe registo na cache para esta data
+  const diaExistente = cacheDias.find(d => d.data === dataVal);
+
+  let error;
+  if (diaExistente) {
+    // Atualiza o registo existente (UPDATE)
+    const res = await supabaseClient
+      .from('controle_dias')
+      .update({
+        bruto: c.bruto,
+        km: c.km,
+        comb: c.comb,
+        alim: c.alim,
+        outros: c.outros,
+        bonus: c.bonus,
+        gasto: c.gasto,
+        liquido: c.liquido,
+        bruto_km: c.brutoKm,
+        liquido_km: c.liquidoKm
+      })
+      .eq('id', diaExistente.id)
+      .eq('user_id', usuarioAtual.id);
+    error = res.error;
+  } else {
+    // Insere um novo registo (INSERT)
+    const res = await supabaseClient
+      .from('controle_dias')
+      .insert([{
+        user_id: usuarioAtual.id,
+        data: dataVal,
+        bruto: c.bruto,
+        km: c.km,
+        comb: c.comb,
+        alim: c.alim,
+        outros: c.outros,
+        bonus: c.bonus,
+        gasto: c.gasto,
+        liquido: c.liquido,
+        bruto_km: c.brutoKm,
+        liquido_km: c.liquidoKm
+      }]);
+    error = res.error;
+  }
 
   if(error) {
     alert('Erro ao guardar os dados: ' + traduzirErro(error.message));
@@ -276,6 +315,8 @@ async function salvar(){
   }
 
   ['bruto','km','comb','alim','outros','bonus'].forEach(id=>$(id).value='');
+  $('btn-salvar').textContent = 'Salvar dia';$('btn-salvar').style.background = '#2d7dff';
+  $('btn-salvar').style.color = '#fff';
   calc();
   carregarDados();
 }
@@ -293,6 +334,7 @@ async function carregarDados() {
 
   cacheDias = data || [];
   render();
+  verificarDataSelecionada(); // Garante checagem caso a data atual já tenha dados
 }
 
 function render(){
