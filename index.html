@@ -1,39 +1,155 @@
 <!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0f1115"><title>Controle Diario</title>
-<style>*{box-sizing:border-box;font-family:system-ui}body{margin:0;background:#0f1115;color:#e8e8e8;padding:16px;max-width:480px;margin:auto}h1{font-size:22px}.sub{color:#9aa0a6;font-size:13px;margin-bottom:16px}.card{background:#1a1d24;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid #2a2e39}label{font-size:12px;color:#9aa0a6;display:block;margin:10px 0 4px}input{width:100%;padding:12px;border-radius:10px;border:1px solid #2a2e39;background:#10131a;color:#fff;font-size:15px}.row{display:flex;gap:10px}.row>div{flex:1}.btn{width:100%;padding:14px;border-radius:12px;border:0;background:#2d7dff;color:#fff;font-weight:700;margin-top:14px;cursor:pointer}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.metric{background:#10131a;border-radius:12px;padding:12px;border:1px solid #2a2e39}.metric b{display:block;font-size:10px;color:#9aa0a6}.metric span{font-size:17px;font-weight:800}.green span{color:#4ade80}.blue span{color:#60a5fa}.orange span{color:#fb923c}table{width:100%;font-size:12px;border-collapse:collapse}th{color:#9aa0a6;text-align:left;padding:8px 4px;border-bottom:1px solid #2a2e39}td{padding:8px 4px;border-bottom:1px solid #1f232e}.small{font-size:11px;color:#9aa0a6}</style></head><body>
-<h1>🚗 Controle Diario</h1><div class="sub">Bruto • Combustivel • Alimentacao • KM • Calculo automatico</div>
-<div class="card">
-  <label>Data</label><input type="date" id="data">
-  <div class="row">
-    <div><label>Valor Bruto R$</label><input type="number" id="bruto" placeholder="85"></div>
-    <div><label>KM Rodado</label><input type="number" id="km" placeholder="120"></div>
-  </div>
-  <div class="row">
-    <div><label>Combustivel R$</label><input type="number" id="comb" placeholder="30"></div>
-    <div><label>Alimentacao R$</label><input type="number" id="alim" placeholder="15"></div>
-  </div>
-  <div class="row">
-    <div><label>Outros R$</label><input type="number" id="outros" placeholder="0"></div>
-    <div><label>Outros Apps/Bonus R$</label><input type="number" id="bonus" placeholder="0"></div>
-  </div>
-<div class="metrics">
-  <div class="metric blue"><b>R$ por KM Bruto</b><span id="m_bruto_km">R$ 0,00</span></div>
-  <div class="metric green"><b>Liquido</b><span id="m_liquido">R$ 0,00</span></div>
-  <div class="metric orange"><b>R$ por KM Liq</b><span id="m_liquido_km">R$ 0,00</span></div>
-  <div class="metric"><b>Total Gasto</b><span id="m_gasto">R$ 0,00</span></div>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0f1115">
+<title>Controle Diario</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;font-family:system-ui}
+body{margin:0;background:#0f1115;color:#e8e8e8;padding:16px;max-width:480px;margin:auto}
+h1{font-size:22px}.sub{color:#9aa0a6;font-size:13px;margin-bottom:16px}
+.card{background:#1a1d24;border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid #2a2e39}
+label{font-size:12px;color:#9aa0a6;display:block;margin:10px 0 4px}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid #2a2e39;background:#10131a;color:#fff;font-size:15px}
+.row{display:flex;gap:10px}.row>div{flex:1}
+.btn{width:100%;padding:14px;border-radius:12px;border:0;background:#2d7dff;color:#fff;font-weight:700;margin-top:14px;cursor:pointer}
+.btn-sec{background:#1f232e;margin-top:8px}
+.btn-danger{background:#2a1212;color:#ff8a8a;margin-top:8px}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.metric{background:#10131a;border-radius:12px;padding:12px;border:1px solid #2a2e39}
+.metric b{display:block;font-size:10px;color:#9aa0a6}
+.metric span{font-size:17px;font-weight:800}
+.green span{color:#4ade80}.blue span{color:#60a5fa}.orange span{color:#fb923c}
+table{width:100%;font-size:12px;border-collapse:collapse}
+th{color:#9aa0a6;text-align:left;padding:8px 4px;border-bottom:1px solid #2a2e39}
+td{padding:8px 4px;border-bottom:1px solid #1f232e}
+.small{font-size:11px;color:#9aa0a6}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<!-- TELA DE LOGIN -->
+<div id="auth-screen" class="card">
+  <h1>🔐 Entrar no Sistema</h1>
+  <div class="sub">Informe seu e-mail e senha para acessar seus dados na nuvem.</div>
+  <label>E-mail</label>
+  <input type="email" id="email" placeholder="seu@email.com">
+  <label>Senha</label>
+  <input type="password" id="password" placeholder="Sua senha">
+  <button class="btn" onclick="fazerLogin()">Entrar</button>
+  <button class="btn btn-sec" onclick="fazerCadastro()">Criar conta</button>
+  <div id="auth-msg" class="small" style="color:#ff8a8a;margin-top:10px;text-align:center;"></div>
 </div>
-<button class="btn" onclick="salvar()">Salvar dia</button></div>
-<div class="card">
+
+<!-- TELA DO APLICATIVO -->
+<div id="app-screen" class="hidden">
   <div style="display:flex; justify-content:space-between; align-items:center;">
-    <b>Historico</b>
-    <span class="small" id="totalAcum"></span>
+    <h1>🚗 Controle Diario</h1>
+    <button onclick="fazerLogout()" style="background:none;border:0;color:#ff8a8a;cursor:pointer;font-weight:bold;">Sair</button>
   </div>
-  <table><thead><tr><th>Data</th><th>Bruto</th><th>Liq</th><th>R$/km</th></tr></thead><tbody id="tbody"></tbody></table>
-  <button class="btn" style="background:#1f232e" onclick="exportar()">Exportar pro WhatsApp</button>
-  <button class="btn" style="background:#2a1212;color:#ff8a8a;margin-top:8px" onclick="limpar()">Limpar tudo</button>
+  <div class="sub">Bruto • Combustivel • Alimentacao • KM • Nuvem</div>
+  
+  <div class="card">
+    <label>Data</label><input type="date" id="data">
+    <div class="row">
+      <div><label>Valor Bruto R$</label><input type="number" id="bruto" placeholder="85"></div>
+      <div><label>KM Rodado</label><input type="number" id="km" placeholder="120"></div>
+    </div>
+    <div class="row">
+      <div><label>Combustivel R$</label><input type="number" id="comb" placeholder="30"></div>
+      <div><label>Alimentacao R$</label><input type="number" id="alim" placeholder="15"></div>
+    </div>
+    <div class="row">
+      <div><label>Outros R$</label><input type="number" id="outros" placeholder="0"></div>
+      <div><label>Outros Apps/Bonus R$</label><input type="number" id="bonus" placeholder="0"></div>
+    </div>
+    <div class="metrics">
+      <div class="metric blue"><b>R$ por KM Bruto</b><span id="m_bruto_km">R$ 0,00</span></div>
+      <div class="metric green"><b>Liquido</b><span id="m_liquido">R$ 0,00</span></div>
+      <div class="metric orange"><b>R$ por KM Liq</b><span id="m_liquido_km">R$ 0,00</span></div>
+      <div class="metric"><b>Total Gasto</b><span id="m_gasto">R$ 0,00</span></div>
+    </div>
+    <button class="btn" onclick="salvar()">Salvar dia</button>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <b>Historico</b>
+      <span class="small" id="totalAcum"></span>
+    </div>
+    <table>
+      <thead><tr><th>Data</th><th>Bruto</th><th>Liq</th><th>R$/km</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <button class="btn btn-sec" onclick="exportar()">Exportar pro WhatsApp</button>
+  </div>
 </div>
+
 <script>
-const $=id=>document.getElementById(id);$('data').valueAsDate=new Date();
+// CONFIGURAÇÃO DO SUPABASE (Insira suas chaves aqui)
+const SUPABASE_URL = 'SUA_URL_DO_SUPABASE_AQUI';
+const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_DO_SUPABASE_AQUI';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const $=id=>document.getElementById(id);$('data').valueAsDate = new Date();
+
+let usuarioAtual = null;
+let cacheDias = [];
+
+// Checar sessão ao carregar
+async function checarSessao() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    usuarioAtual = session.user;
+    mostrarApp();
+  } else {
+    mostrarAuth();
+  }
+}
+checarSessao();
+
+function mostrarAuth() {
+  $('auth-screen').classList.remove('hidden');$('app-screen').classList.add('hidden');
+}
+
+function mostrarApp() {
+  $('auth-screen').classList.add('hidden');$('app-screen').classList.remove('hidden');
+  carregarDados();
+}
+
+async function fazerLogin() {
+  const email = $('email').value;
+  const password = $('password').value;
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    $('auth-msg').textContent = error.message;
+  } else {
+    usuarioAtual = data.user;
+    mostrarApp();
+  }
+}
+
+async function fazerCadastro() {
+  const email = $('email').value;
+  const password = $('password').value;
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) {
+    $('auth-msg').textContent = error.message;
+  } else {
+    alert('Conta criada com sucesso! Se necessário, confirme seu e-mail ou faça login.');
+  }
+}
+
+async function fazerLogout() {
+  await supabaseClient.auth.signOut();
+  usuarioAtual = null;
+  mostrarAuth();
+}
+
 function calc(){
   const bruto=parseFloat($('bruto').value)||0,
         km=parseFloat($('km').value)||0,
@@ -51,42 +167,82 @@ function calc(){
   return{bruto:totalBruto,km,comb,alim,outros,bonus,gasto,liquido,brutoKm,liquidoKm}
 }
 ['bruto','km','comb','alim','outros','bonus'].forEach(id=>$(id).addEventListener('input',calc));
-function salvar(){
+
+async function salvar(){
   const c=calc();
   if(!c.bruto){alert('Coloca o bruto');return}
-  const data=$('data').value||new Date().toISOString().slice(0,10);
-  const lista=JSON.parse(localStorage.getItem('dias')||'[]');
-  lista.unshift({data,...c});
-  localStorage.setItem('dias',JSON.stringify(lista));
-  render();
+  const dataVal=$('data').value||new Date().toISOString().slice(0,10);
+  
+  const { error } = await supabaseClient
+    .from('controle_dias')
+    .insert([{
+      user_id: usuarioAtual.id,
+      data: dataVal,
+      bruto: c.bruto,
+      km: c.km,
+      comb: c.comb,
+      alim: c.alim,
+      outros: c.outros,
+      bonus: c.bonus,
+      gasto: c.gasto,
+      liquido: c.liquido,
+      bruto_km: c.brutoKm,
+      liquido_km: c.liquidoKm
+    }]);
+
+  if(error) {
+    alert('Erro ao salvar: ' + error.message);
+    return;
+  }
+
   ['bruto','km','comb','alim','outros','bonus'].forEach(id=>$(id).value='');
   calc();
+  carregarDados();
 }
+
+async function carregarDados() {
+  const { data, error } = await supabaseClient
+    .from('controle_dias')
+    .select('*')
+    .order('data', { ascending: false });
+
+  if(error) {
+    console.error('Erro ao carregar', error);
+    return;
+  }
+
+  cacheDias = data || [];
+  render();
+}
+
 function render(){
-  const lista=JSON.parse(localStorage.getItem('dias')||'[]');
   const tbody=$('tbody');
   tbody.innerHTML='';
   let tLiq=0,tKm=0;
-  lista.forEach(d=>{
+  cacheDias.forEach(d=>{
     tLiq+=d.liquido;
     tKm+=d.km;
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${d.data.slice(8,10)}/${d.data.slice(5,7)}<br><span class=small>${d.km}km</span></td><td>R$ ${d.bruto.toFixed(0)}</td><td style=color:#4ade80>R$ ${d.liquido.toFixed(0)}</td><td>R$ ${d.liquidoKm.toFixed(2)}</td>`;
+    const dataFmt = d.data.split('-').reverse().join('/');
+    tr.innerHTML=`<td>${dataFmt.slice(0,5)}<br><span class=small>${d.km}km</span></td><td>R$ ${Number(d.bruto).toFixed(0)}</td><td style=color:#4ade80>R$ ${Number(d.liquido).toFixed(0)}</td><td>R$ ${Number(d.liquido_km).toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
-  $('totalAcum').textContent=lista.length?` Total liq R$ ${tLiq.toFixed(0)} em ${tKm}km` :'';
+  $('totalAcum').textContent=cacheDias.length?` Total liq R$ ${tLiq.toFixed(0)} em ${tKm}km` :'';
 }
+
 function exportar(){
-  const lista=JSON.parse(localStorage.getItem('dias')||'[]');
-  if(!lista.length){alert('Nada pra exportar');return}
+  if(!cacheDias.length){alert('Nada pra exportar');return}
   let txt='*Controle Diario*\n\n';
-  lista.forEach(d=>{
-    txt+=`📅 ${d.data} - Bruto R$${d.bruto} | Comb R$${d.comb} | Alim R$${d.alim} | Outros R$${d.outros} | Gasto R$${d.gasto} | Liq R$${d.liquido.toFixed(2)} | ${d.km}km | R$/km R$${d.liquidoKm.toFixed(2)}\n`;
+  cacheDias.forEach(d=>{
+    txt+=`📅 ${d.data} - Bruto R$${d.bruto} | Comb R$${d.comb} | Alim R$${d.alim} | Outros R$${d.outros} | Gasto R$${d.gasto} | Liq R$${Number(d.liquido).toFixed(2)} | ${d.km}km | R$/km R$${Number(d.liquido_km).toFixed(2)}\n`;
   });
-  const totalLiq = lista.reduce((a,b)=>a+b.liquido,0);
+  const totalLiq = cacheDias.reduce((a,b)=>a+Number(b.liquido),0);
   txt+=`\n💰 Total liquido: R$ ${totalLiq.toFixed(2)}`;
   window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
 }
-function limpar(){if(confirm('Apagar tudo?')){localStorage.removeItem('dias');render()}}
-calc();render();
-</script></body></html>
+
+calc();
+</script>
+</body>
+  </html>
+  
