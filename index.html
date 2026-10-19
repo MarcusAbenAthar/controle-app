@@ -13,9 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Controle">
 
-<!-- SDK Supabase Oficial CDN -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;font-family:system-ui}
 body{margin:0;background:#0f1115;color:#e8e8e8;padding:16px;max-width:480px;margin:auto}
@@ -106,22 +104,10 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
 </div>
 
 <script>
-// URL corrigida sem 'H' maiúsculo
-const SUPABASE_URL = 'https://ectrvieffyfkbsttliwj.supabase.co';
+const SUPABASE_URL = 'Https://ectrvieffyfkbsttliwj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_aS4pis5Cve9JBPe7Nv-r1g_4XFZW8qe';
 
-let supabaseClient = null;
-
-// Inicialização segura do cliente Supabase
-try {
-  if (window.supabase) {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else {
-    document.getElementById('auth-msg').textContent = 'Erro ao carregar banco de dados. Recarregue a página.';
-  }
-} catch (err) {
-  console.error('Erro no Supabase:', err);
-}
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const $=id=>document.getElementById(id);$('data').valueAsDate = new Date();
 
@@ -129,18 +115,24 @@ let usuarioAtual = null;
 let cacheDias = [];
 let modoAuth = 'login';
 
+// Registo otimizado de Service Worker inline para PWA no GitHub Pages
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('data:application/javascript,self.addEventListener("fetch",function(e){});');
+}
+
 function traduzirErro(mensagemOriginal) {
   if (!mensagemOriginal) return 'Ocorreu um erro inesperado. Tente novamente.';
   const msg = mensagemOriginal.toLowerCase();
-  if (msg.includes('invalid login credentials')) return 'E-mail ou senha incorretos.';
-  if (msg.includes('user already registered')) return 'Este e-mail já está cadastrado.';
-  if (msg.includes('password should be at least')) return 'A senha deve ter pelo menos 6 caracteres.';
-  if (msg.includes('email not confirmed')) return 'E-mail ainda não confirmado.';
+  if (msg.includes('invalid login credentials')) return 'E-mail ou palavra-passe incorretos.';
+  if (msg.includes('user already registered')) return 'Este e-mail já está registado. Alterne para a aba "Entrar".';
+  if (msg.includes('password should be at least')) return 'A palavra-passe deve ter pelo menos 6 caracteres.';
+  if (msg.includes('email not confirmed')) return 'E-mail ainda não confirmado. Verifique a sua caixa de entrada.';
+  if (msg.includes('rate limit exceeded') || msg.includes('too many requests')) return 'Muitas tentativas. Aguarde alguns instantes.';
+  if (msg.includes('invalid email')) return 'Por favor, insira um endereço de e-mail válido.';
   return 'Erro: ' + mensagemOriginal;
 }
 
 async function checarSessao() {
-  if (!supabaseClient) return;
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
     usuarioAtual = session.user;
@@ -176,32 +168,34 @@ function mudarModoAuth(modo) {
     tabLogin.style.color = '#fff';
     tabSignup.style.background = 'transparent';
     tabSignup.style.color = '#9aa0a6';
+
     title.textContent = '🔐 Entrar no Sistema';
     sub.textContent = 'Informe seu e-mail e senha para acessar seus dados na nuvem.';
     btn.textContent = 'Entrar';
+    btn.style.background = '#2d7dff';
+    btn.style.color = '#fff';
   } else {
     tabSignup.style.background = '#2d7dff';
     tabSignup.style.color = '#fff';
     tabLogin.style.background = 'transparent';
     tabLogin.style.color = '#9aa0a6';
+
     title.textContent = '📝 Criar Nova Conta';
     sub.textContent = 'Crie sua conta para guardar seus ganhos e relatórios na nuvem.';
     btn.textContent = 'Criar Conta';
+    btn.style.background = '#4ade80';
+    btn.style.color = '#000';
   }
 }
 
 async function executarAuth() {
-  if (!supabaseClient) {
-    alert('Aguarde o carregamento do sistema e tente novamente.');
-    return;
-  }
   const email = $('email').value.trim();
   const password = $('password').value;
   const msg = $('auth-msg');
 
   if (!email || !password) {
     msg.style.color = '#ff8a8a';
-    msg.textContent = 'Por favor, preencha o e-mail e a senha.';
+    msg.textContent = 'Por favor, preencha o e-mail e a palavra-passe.';
     return;
   }
 
@@ -224,14 +218,14 @@ async function executarAuth() {
       msg.textContent = traduzirErro(error.message);
     } else {
       msg.style.color = '#4ade80';
-      msg.textContent = 'Conta criada com sucesso! Já pode entrar.';
+      msg.textContent = 'Conta criada com sucesso! Já pode entrar com os seus dados.';
       mudarModoAuth('login');
     }
   }
 }
 
 async function fazerLogout() {
-  if (supabaseClient) await supabaseClient.auth.signOut();
+  await supabaseClient.auth.signOut();
   usuarioAtual = null;
   mostrarAuth();
 }
@@ -254,6 +248,7 @@ function calc(){
 }
 ['bruto','km','comb','alim','outros','bonus'].forEach(id=>$(id).addEventListener('input',calc));
 
+// Função que verifica se já existe registo para a data e altera o botão para atualizar
 function verificarDataSelecionada() {
   const dataVal = $('data').value;
   const diaExistente = cacheDias.find(d => d.data === dataVal);
@@ -283,6 +278,7 @@ async function salvar(){
 
   let error;
   if (diaExistente) {
+    // Faz o UPDATE se o dia já existir
     const res = await supabaseClient
       .from('controle_dias')
       .update({
@@ -301,6 +297,7 @@ async function salvar(){
       .eq('user_id', usuarioAtual.id);
     error = res.error;
   } else {
+    // Faz o INSERT se for um dia novo
     const res = await supabaseClient
       .from('controle_dias')
       .insert([{
@@ -333,7 +330,6 @@ async function salvar(){
 }
 
 async function carregarDados() {
-  if (!supabaseClient) return;
   const { data, error } = await supabaseClient
     .from('controle_dias')
     .select('*')
