@@ -40,7 +40,6 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
 
 <!-- TELA DE AUTENTICAÇÃO (LOGIN / CADASTRO) -->
 <div id="auth-screen" class="card">
-  <!-- Alternador de Aba -->
   <div style="display:flex; background:#10131a; padding:4px; border-radius:10px; margin-bottom:16px; border:1px solid #2a2e39;">
     <button id="tab-login" onclick="mudarModoAuth('login')" style="flex:1; padding:10px; border:0; border-radius:8px; background:#2d7dff; color:#fff; font-weight:bold; cursor:pointer;">Entrar</button>
     <button id="tab-signup" onclick="mudarModoAuth('signup')" style="flex:1; padding:10px; border:0; border-radius:8px; background:transparent; color:#9aa0a6; font-weight:bold; cursor:pointer;">Criar Conta</button>
@@ -116,41 +115,20 @@ let usuarioAtual = null;
 let cacheDias = [];
 let modoAuth = 'login';
 
-// Registrar Service Worker para PWA (arquivo sw.js)
+// Registo otimizado de Service Worker inline para PWA no GitHub Pages
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js')
-    .then(() => console.log('Service Worker Registrado!'))
-    .catch((err) => console.error('Erro no SW:', err));
+  navigator.serviceWorker.register('data:application/javascript,self.addEventListener("fetch",function(e){});');
 }
 
-// Função auxiliar para traduzir mensagens de erro do Supabase
 function traduzirErro(mensagemOriginal) {
   if (!mensagemOriginal) return 'Ocorreu um erro inesperado. Tente novamente.';
-  
   const msg = mensagemOriginal.toLowerCase();
-  
-  if (msg.includes('invalid login credentials')) {
-    return 'E-mail ou palavra-passe incorretos.';
-  }
-  if (msg.includes('user already registered')) {
-    return 'Este e-mail já está registado. Alterne para a aba "Entrar".';
-  }
-  if (msg.includes('password should be at least')) {
-    return 'A palavra-passe deve ter pelo menos 6 caracteres.';
-  }
-  if (msg.includes('email not confirmed')) {
-    return 'E-mail ainda não confirmado. Verifique a sua caixa de entrada.';
-  }
-  if (msg.includes('rate limit exceeded') || msg.includes('too many requests')) {
-    return 'Muitas tentativas seguidas. Aguarde alguns instantes e tente novamente.';
-  }
-  if (msg.includes('anonymous sign-ins are disabled')) {
-    return 'Preencha o e-mail e a palavra-passe para continuar.';
-  }
-  if (msg.includes('invalid email') || msg.includes('unable to validate email')) {
-    return 'Por favor, insira um endereço de e-mail válido.';
-  }
-
+  if (msg.includes('invalid login credentials')) return 'E-mail ou palavra-passe incorretos.';
+  if (msg.includes('user already registered')) return 'Este e-mail já está registado. Alterne para a aba "Entrar".';
+  if (msg.includes('password should be at least')) return 'A palavra-passe deve ter pelo menos 6 caracteres.';
+  if (msg.includes('email not confirmed')) return 'E-mail ainda não confirmado. Verifique a sua caixa de entrada.';
+  if (msg.includes('rate limit exceeded') || msg.includes('too many requests')) return 'Muitas tentativas. Aguarde alguns instantes.';
+  if (msg.includes('invalid email')) return 'Por favor, insira um endereço de e-mail válido.';
   return 'Erro: ' + mensagemOriginal;
 }
 
