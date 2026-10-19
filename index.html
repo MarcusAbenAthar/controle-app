@@ -68,7 +68,7 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
   <div class="sub">Bruto • Combustível • Alimentação • KM • Nuvem</div>
   
   <div class="card">
-    <label>Data</label><input type="date" id="data" onchange="verificarDataSelecionada()">
+    <label>Data</label><input type="date" id="data">
     <div class="row">
       <div><label>Valor Bruto R$</label><input type="number" id="bruto" placeholder="85"></div>
       <div><label>KM Rodado</label><input type="number" id="km" placeholder="120"></div>
@@ -87,7 +87,7 @@ td{padding:8px 4px;border-bottom:1px solid #1f232e}
       <div class="metric orange"><b>R$ por KM Líq</b><span id="m_liquido_km">R$ 0,00</span></div>
       <div class="metric"><b>Total Gasto</b><span id="m_gasto">R$ 0,00</span></div>
     </div>
-    <button class="btn" id="btn-salvar" onclick="salvar()">Salvar dia</button>
+    <button class="btn" onclick="salvar()">Salvar dia</button>
   </div>
 
   <div class="card">
@@ -248,74 +248,27 @@ function calc(){
 }
 ['bruto','km','comb','alim','outros','bonus'].forEach(id=>$(id).addEventListener('input',calc));
 
-// Função que verifica se já existe registo para a data e altera o botão para atualizar
-function verificarDataSelecionada() {
-  const dataVal = $('data').value;
-  const diaExistente = cacheDias.find(d => d.data === dataVal);
-  
-  if (diaExistente) {
-    $('bruto').value = diaExistente.bruto - (diaExistente.bonus \vert{}\vert{} 0);$('km').value = diaExistente.km;
-    $('comb').value = diaExistente.comb;
-    $('alim').value = diaExistente.alim;
-    $('outros').value = diaExistente.outros;
-    $('bonus').value = diaExistente.bonus || 0;
-    $('btn-salvar').textContent = 'Atualizar este dia';$('btn-salvar').style.background = '#eab308';
-    $('btn-salvar').style.color = '#000';
-  } else {
-    ['bruto','km','comb','alim','outros','bonus'].forEach(id=>$(id).value='');
-    $('btn-salvar').textContent = 'Salvar dia';$('btn-salvar').style.background = '#2d7dff';
-    $('btn-salvar').style.color = '#fff';
-  }
-  calc();
-}
-
 async function salvar(){
   const c=calc();
   if(!c.bruto){alert('Informe o valor bruto.');return}
   const dataVal=$('data').value||new Date().toISOString().slice(0,10);
   
-  const diaExistente = cacheDias.find(d => d.data === dataVal);
-
-  let error;
-  if (diaExistente) {
-    // Faz o UPDATE se o dia já existir
-    const res = await supabaseClient
-      .from('controle_dias')
-      .update({
-        bruto: c.bruto,
-        km: c.km,
-        comb: c.comb,
-        alim: c.alim,
-        outros: c.outros,
-        bonus: c.bonus,
-        gasto: c.gasto,
-        liquido: c.liquido,
-        bruto_km: c.brutoKm,
-        liquido_km: c.liquidoKm
-      })
-      .eq('id', diaExistente.id)
-      .eq('user_id', usuarioAtual.id);
-    error = res.error;
-  } else {
-    // Faz o INSERT se for um dia novo
-    const res = await supabaseClient
-      .from('controle_dias')
-      .insert([{
-        user_id: usuarioAtual.id,
-        data: dataVal,
-        bruto: c.bruto,
-        km: c.km,
-        comb: c.comb,
-        alim: c.alim,
-        outros: c.outros,
-        bonus: c.bonus,
-        gasto: c.gasto,
-        liquido: c.liquido,
-        bruto_km: c.brutoKm,
-        liquido_km: c.liquidoKm
-      }]);
-    error = res.error;
-  }
+  const { error } = await supabaseClient
+    .from('controle_dias')
+    .insert([{
+      user_id: usuarioAtual.id,
+      data: dataVal,
+      bruto: c.bruto,
+      km: c.km,
+      comb: c.comb,
+      alim: c.alim,
+      outros: c.outros,
+      bonus: c.bonus,
+      gasto: c.gasto,
+      liquido: c.liquido,
+      bruto_km: c.brutoKm,
+      liquido_km: c.liquidoKm
+    }]);
 
   if(error) {
     alert('Erro ao guardar os dados: ' + traduzirErro(error.message));
@@ -323,8 +276,6 @@ async function salvar(){
   }
 
   ['bruto','km','comb','alim','outros','bonus'].forEach(id=>$(id).value='');
-  $('btn-salvar').textContent = 'Salvar dia';$('btn-salvar').style.background = '#2d7dff';
-  $('btn-salvar').style.color = '#fff';
   calc();
   carregarDados();
 }
@@ -342,7 +293,6 @@ async function carregarDados() {
 
   cacheDias = data || [];
   render();
-  verificarDataSelecionada();
 }
 
 function render(){
