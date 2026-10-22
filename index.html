@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -9,11 +9,15 @@
     <link rel="manifest" href="manifest.json" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="Controle" />
 
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js" defer></script>
   </head>
   <body>
@@ -24,7 +28,9 @@
       </div>
 
       <h1 id="auth-title">🔐 Entrar no Sistema</h1>
-      <div class="sub" id="auth-sub">Informe seu e-mail e senha para acessar seus dados na nuvem.</div>
+      <div class="sub" id="auth-sub">
+        Informe seu e-mail e senha para acessar seus dados na nuvem.
+      </div>
 
       <label for="email">E-mail</label>
       <input type="email" id="email" placeholder="seu@email.com" />
@@ -32,7 +38,9 @@
       <label for="password">Senha</label>
       <input type="password" id="password" placeholder="Sua senha" />
 
-      <button class="btn auth-btn" id="btn-auth-submit" type="button">Entrar</button>
+      <button class="btn auth-btn" id="btn-auth-submit" type="button">
+        Entrar
+      </button>
 
       <div id="auth-msg" class="small"></div>
     </div>
@@ -42,86 +50,170 @@
         <h1>🚗 Controle Diário</h1>
         <button type="button" id="btn-logout" class="logout-btn">Sair</button>
       </div>
-      <div class="sub">Bruto • Combustível • Alimentação • KM • Nuvem</div>
 
-      <div class="card">
-        <label for="data">Data</label>
-        <input type="date" id="data" />
-
-        <div class="row">
-          <div>
-            <label for="bruto">Valor Bruto R$</label>
-            <input type="number" id="bruto" placeholder="85" />
-          </div>
-          <div>
-            <label for="km">KM Rodado</label>
-            <input type="number" id="km" placeholder="120" />
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
-            <label for="comb">Combustível R$</label>
-            <input type="number" id="comb" placeholder="30" />
-          </div>
-          <div>
-            <label for="alim">Alimentação R$</label>
-            <input type="number" id="alim" placeholder="15" />
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
-            <label for="outros">Outros R$</label>
-            <input type="number" id="outros" placeholder="0" />
-          </div>
-          <div>
-            <label for="bonus">Outros Apps/Bônus R$</label>
-            <input type="number" id="bonus" placeholder="0" />
-          </div>
-        </div>
-
-        <div class="metrics">
-          <div class="metric blue">
-            <b>R$ por KM Bruto</b>
-            <span id="m_bruto_km">R$ 0,00</span>
-          </div>
-          <div class="metric green">
-            <b>Líquido</b>
-            <span id="m_liquido">R$ 0,00</span>
-          </div>
-          <div class="metric orange">
-            <b>R$ por KM Líq</b>
-            <span id="m_liquido_km">R$ 0,00</span>
-          </div>
-          <div class="metric">
-            <b>Total Gasto</b>
-            <span id="m_gasto">R$ 0,00</span>
-          </div>
-        </div>
-
-        <button class="btn" id="btn-salvar" type="button">Salvar dia</button>
+      <div class="app-tabs">
+        <button id="tab-lancamentos" class="tab active" type="button">
+          Lançamentos
+        </button>
+        <button id="tab-relatorios" class="tab" type="button">
+          Relatórios / Dashboard
+        </button>
       </div>
 
-      <div class="card">
-        <div class="inline-actions">
-          <b>Histórico</b>
-          <span class="small" id="totalAcum"></span>
+      <div id="view-lancamentos">
+        <div class="sub">Bruto • Combustível • Alimentação • KM • Nuvem</div>
+
+        <div class="card">
+          <label for="data">Data</label>
+          <input type="date" id="data" />
+
+          <div class="row">
+            <div>
+              <label for="bruto">Valor Bruto R$</label>
+              <input type="number" id="bruto" placeholder="85" />
+            </div>
+            <div>
+              <label for="km">KM Rodado</label>
+              <input type="number" id="km" placeholder="120" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="comb">Combustível R$</label>
+              <input type="number" id="comb" placeholder="30" />
+            </div>
+            <div>
+              <label for="alim">Alimentação R$</label>
+              <input type="number" id="alim" placeholder="15" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="outros">Outros R$</label>
+              <input type="number" id="outros" placeholder="0" />
+            </div>
+            <div>
+              <label for="bonus">Outros Apps/Bônus R$</label>
+              <input type="number" id="bonus" placeholder="0" />
+            </div>
+          </div>
+
+          <div class="metrics">
+            <div class="metric blue">
+              <b>R$ por KM Bruto</b>
+              <span id="m_bruto_km">R$ 0,00</span>
+            </div>
+            <div class="metric green">
+              <b>Líquido</b>
+              <span id="m_liquido">R$ 0,00</span>
+            </div>
+            <div class="metric orange">
+              <b>R$ por KM Líq</b>
+              <span id="m_liquido_km">R$ 0,00</span>
+            </div>
+            <div class="metric">
+              <b>Total Gasto</b>
+              <span id="m_gasto">R$ 0,00</span>
+            </div>
+          </div>
+
+          <button class="btn" id="btn-salvar" type="button">Salvar dia</button>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Bruto</th>
-              <th>Líq</th>
-              <th>R$/km</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
+        <div class="card">
+          <div class="inline-actions">
+            <b>Histórico</b>
+            <span class="small" id="totalAcum"></span>
+          </div>
 
-        <button class="btn btn-secondary" id="btn-exportar" type="button">Exportar para o WhatsApp</button>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Bruto</th>
+                  <th>Líq</th>
+                  <th>R$/km</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+
+          <button class="btn btn-secondary" id="btn-exportar" type="button">
+            Exportar para o WhatsApp
+          </button>
+        </div>
+      </div>
+
+      <div id="view-relatorios" class="hidden">
+        <div class="card">
+          <div class="inline-actions">
+            <b>Relatórios e Análise</b>
+            <span class="small" id="report-summary">Carregando...</span>
+          </div>
+
+          <div class="report-periods">
+            <button class="active" data-period="semanal" type="button">
+              Semanal
+            </button>
+            <button data-period="mensal" type="button">Mensal</button>
+            <button data-period="anual" type="button">Anual</button>
+          </div>
+
+          <div class="report-filters">
+            <label>
+              Mês
+              <select id="report-month-filter">
+                <option value="all">Todos</option>
+              </select>
+            </label>
+            <label>
+              Ano
+              <select id="report-year-filter">
+                <option value="all">Todos</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div id="report-kpis" class="kpi-grid"></div>
+
+        <div class="chart-grid">
+          <div class="card chart-card">
+            <canvas id="chart-lucro"></canvas>
+          </div>
+          <div class="card chart-card">
+            <canvas id="chart-lucro-linha"></canvas>
+          </div>
+          <div class="card chart-card">
+            <canvas id="chart-rkm"></canvas>
+          </div>
+          <div class="card chart-card full">
+            <canvas id="chart-custos"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="inline-actions">
+            <b>Resumo por período</b>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Período</th>
+                  <th>Fatur.</th>
+                  <th>Lucro</th>
+                  <th>R$/km</th>
+                </tr>
+              </thead>
+              <tbody id="report-table-body"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </body>
