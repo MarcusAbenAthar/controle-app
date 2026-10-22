@@ -15,6 +15,7 @@ const state = {
   reportYear: 'all',
   chartInstances: {},
   modoEdicao: false,
+  registroEmEdicaoId: null,
 };
 
 function setupDate() {
@@ -199,7 +200,7 @@ async function salvar() {
   const dataVal = el('data').value || new Date().toISOString().slice(0, 10);
 
   if (state.modoEdicao) {
-    const { error } = await supabaseClient
+    let request = supabaseClient
       .from('controle_dias')
       .update({
         bruto: dados.bruto,
@@ -213,11 +214,22 @@ async function salvar() {
         bruto_km: dados.brutoKm,
         liquido_km: dados.liquidoKm,
       })
-      .eq('user_id', state.usuarioAtual.id)
-      .eq('data', dataVal);
+      .eq('user_id', state.usuarioAtual.id);
+
+    request = state.registroEmEdicaoId
+      ? request.eq('id', state.registroEmEdicaoId)
+      : request.eq('data', dataVal);
+
+    const { data: atualizados, error } = await request.select('*');
 
     if (error) {
       alert('Erro ao atualizar os dados: ' + traduzirErro(error.message));
+      return;
+    }
+
+    if (!atualizados?.length) {
+      alert('O lançamento não foi encontrado ou não pode ser atualizado. Atualize o histórico e tente novamente.');
+      await carregarDados();
       return;
     }
   } else {
@@ -251,7 +263,9 @@ async function salvar() {
   });
 
   state.modoEdicao = false;
+  state.registroEmEdicaoId = null;
   el('btn-salvar').textContent = 'Salvar dia';
+  el('btn-cancelar-edicao').classList.add('hidden');
   calc();
   carregarDados();
 }
@@ -260,6 +274,7 @@ async function carregarDados() {
   const { data, error } = await supabaseClient
     .from('controle_dias')
     .select('*')
+    .eq('user_id', state.usuarioAtual.id)
     .order('data', { ascending: false });
 
   if (error) {
@@ -286,12 +301,41 @@ function renderTabela() {
     const tr = document.createElement('tr');
     const dataFmt = dia.data.split('-').reverse().join('/');
 
-    tr.innerHTML = `
-      <td>${dataFmt.slice(0, 5)}<br><span class="small">${dia.km}km</span></td>
-      <td>R$ ${Number(dia.bruto).toFixed(0)}</td>
-      <td class="text-green">R$ ${Number(dia.liquido).toFixed(0)}</td>
-      <td>R$ ${Number(dia.liquido_km).toFixed(2)}</td>
-    `;
+    const dataCell = document.createElement('td');
+    dataCell.innerHTML = `${dataFmt.slice(0, 5)}<br><span class="small">${dia.km}km</span>`;
+    tr.appendChild(dataCell);
+
+    [
+      { value: `R$ ${Number(dia.bruto).toFixed(0)}` },
+      { value: `R$ ${Number(dia.liquido).toFixed(0)}`, className: 'text-green' },
+      { value: `R$ ${Number(dia.liquido_km).toFixed(2)}` },
+    ].forEach(({ value, className }) => {
+      const cell = document.createElement('td');
+      cell.textContent = value;
+      if (className) cell.classList.add(className);
+      tr.appendChild(cell);
+    });
+
+    const actionsCell = document.createElement('td');
+    actionsCell.classList.add('history-actions');
+    const editButton = document.createElement('button');
+    editButton.type = 'button';
+    editButton.className = 'history-action edit';
+    editButton.dataset.action = 'edit';
+    editButton.textContent = 'Editar';
+    editButton.setAttribute('aria-label', `Editar lançamento de ${dataFmt}`);
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.className = 'history-action delete';
+    deleteButton.dataset.action = 'delete';
+    deleteButton.textContent = 'Excluir';
+    deleteButton.setAttribute('aria-label', `Excluir lançamento de ${dataFmt}`);
+    [editButton, deleteButton].forEach((button) => {
+      button.dataset.date = dia.data;
+      if (dia.id !== undefined && dia.id !== null) button.dataset.recordId = dia.id;
+      actionsCell.appendChild(button);
+    });
+    tr.appendChild(actionsCell);
 
     tbody.appendChild(tr);
   });
@@ -347,19 +391,74 @@ function popularFormularioDoDia(dia) {
   calc();
 }
 
-function prepararModoEdicao(dataSelecionada) {
-  const registro = state.cacheDias.find((dia) => dia.data === dataSelecionada);
+function prepararModoEdicao(dataSelecionada, registroSelecionado = null) {
+  const registro = registroSelecionado || state.cacheDias.find((dia) => dia.data === dataSelecionada);
   const btnSalvar = el('btn-salvar');
 
   if (registro) {
     state.modoEdicao = true;
+    state.registroEmEdicaoId = registro.id ?? null;
     btnSalvar.textContent = 'Atualizar dia';
+    el('btn-cancelar-edicao').classList.remove('hidden');
     popularFormularioDoDia(registro);
     return;
   }
 
+  if (state.modoEdicao) {
+    ['bruto', 'km', 'comb', 'alim', 'outros', 'bonus'].forEach((campo) => {
+      el(campo).value = '';
+    });
+    calc();
+  }
   state.modoEdicao = false;
+  state.registroEmEdicaoId = null;
   btnSalvar.textContent = 'Salvar dia';
+  el('btn-cancelar-edicao').classList.add('hidden');
+}
+
+function cancelarEdicao() {
+  state.modoEdicao = false;
+  state.registroEmEdicaoId = null;
+  ['bruto', 'km', 'comb', 'alim', 'outros', 'bonus'].forEach((campo) => {
+    el(campo).value = '';
+  });
+  setupDate();
+  el('btn-salvar').textContent = 'Salvar dia';
+  el('btn-cancelar-edicao').classList.add('hidden');
+  calc();
+}
+
+async function excluirDia(registro) {
+  const dataFmt = registro.data.split('-').reverse().join('/');
+  if (!window.confirm(`Excluir permanentemente o lançamento de ${dataFmt}?`)) return;
+
+  let request = supabaseClient
+    .from('controle_dias')
+    .delete()
+    .eq('user_id', state.usuarioAtual.id);
+
+  request = registro.id !== undefined && registro.id !== null
+    ? request.eq('id', registro.id)
+    : request.eq('data', registro.data);
+
+  const { data: excluidos, error } = await request.select('*');
+  if (error) {
+    alert('Erro ao excluir o lançamento: ' + traduzirErro(error.message));
+    return;
+  }
+
+  if (!excluidos?.length) {
+    alert('O lançamento não foi encontrado ou não pode ser excluído. Atualize o histórico e tente novamente.');
+    await carregarDados();
+    return;
+  }
+
+  if (state.modoEdicao && (registro.id != null
+    ? String(state.registroEmEdicaoId) === String(registro.id)
+    : el('data').value === registro.data)) {
+    cancelarEdicao();
+  }
+  await carregarDados();
 }
 
 function tratarSelecaoData() {
@@ -759,6 +858,25 @@ function setupEventListeners() {
 
   el('btn-auth-submit').addEventListener('click', executarAuth);
   el('btn-salvar').addEventListener('click', salvar);
+  el('btn-cancelar-edicao').addEventListener('click', cancelarEdicao);
+  el('tbody').addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-action]');
+    if (!button) return;
+    const registro = state.cacheDias.find((dia) => (
+      button.dataset.recordId !== undefined
+        ? String(dia.id) === button.dataset.recordId
+        : dia.data === button.dataset.date
+    ));
+    if (!registro) return;
+
+    if (button.dataset.action === 'edit') {
+      el('data').value = registro.data;
+      prepararModoEdicao(registro.data, registro);
+      el('bruto').focus();
+    } else if (button.dataset.action === 'delete') {
+      excluirDia(registro);
+    }
+  });
   el('btn-exportar').addEventListener('click', exportar);
   el('btn-logout').addEventListener('click', fazerLogout);
 }
