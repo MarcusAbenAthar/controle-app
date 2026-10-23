@@ -542,7 +542,6 @@ function agruparPorPeriodo(dias, periodo, filtros = { mes: 'all', ano: 'all' }) 
         periodo: key,
         label: getLabelPeriodo(key, periodo),
         bruto: 0,
-        bonus: 0,
         comb: 0,
         alim: 0,
         outros: 0,
@@ -554,7 +553,6 @@ function agruparPorPeriodo(dias, periodo, filtros = { mes: 'all', ano: 'all' }) 
 
     const atual = agrupado.get(key);
     atual.bruto += dia.bruto;
-    atual.bonus += dia.bonus;
     atual.comb += dia.comb;
     atual.alim += dia.alim;
     atual.outros += dia.outros;
@@ -589,7 +587,6 @@ function agruparPorPeriodo(dias, periodo, filtros = { mes: 'all', ano: 'all' }) 
       periodo: key,
       label: getLabelPeriodo(key, periodo),
       bruto: 0,
-      bonus: 0,
       comb: 0,
       alim: 0,
       outros: 0,
@@ -603,7 +600,7 @@ function agruparPorPeriodo(dias, periodo, filtros = { mes: 'all', ano: 'all' }) 
 }
 
 function calcularKpis(periodos) {
-  const totalFaturamento = periodos.reduce((sum, item) => sum + item.bruto + item.bonus, 0);
+  const totalFaturamento = periodos.reduce((sum, item) => sum + item.bruto, 0);
   const totalLiquido = periodos.reduce((sum, item) => sum + item.liquido, 0);
   const totalKm = periodos.reduce((sum, item) => sum + item.km, 0);
   const totalGasto = periodos.reduce((sum, item) => sum + item.comb + item.alim + item.outros, 0);
@@ -720,7 +717,7 @@ function renderDashboard() {
   });
   const kpis = calcularKpis(dados);
   const periodosAtivos = dados.filter((item) => (
-    item.bruto + item.bonus + item.liquido + item.totalGasto + item.km !== 0
+    item.bruto + item.liquido + item.totalGasto + item.km !== 0
   ));
   const primeiroDia = dadosFiltrados.reduce((menor, dia) => dia.data < menor ? dia.data : menor, dadosFiltrados[0].data);
   const ultimoDia = dadosFiltrados.reduce((maior, dia) => dia.data > maior ? dia.data : maior, dadosFiltrados[0].data);
@@ -783,7 +780,7 @@ function renderDashboard() {
     datasets: [
       {
         label: 'Faturamento',
-        data: dados.map((item) => item.bruto + item.bonus),
+        data: dados.map((item) => item.bruto),
         borderColor: '#60a5fa',
         backgroundColor: 'rgba(96, 165, 250, 0.12)',
         tension: 0.3,
@@ -835,7 +832,7 @@ function renderDashboard() {
   const tabela = periodosAtivos.map((item) => `
     <tr>
       <td>${item.label}</td>
-      <td>${formatCurrency(item.bruto + item.bonus)}</td>
+      <td>${formatCurrency(item.bruto)}</td>
       <td>${formatCurrency(item.liquido)}</td>
       <td>${formatCurrency(item.km > 0 ? item.liquido / item.km : 0)}</td>
     </tr>
