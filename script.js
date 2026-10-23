@@ -203,6 +203,7 @@ async function salvar() {
     let request = supabaseClient
       .from('controle_dias')
       .update({
+        data: dataVal,
         bruto: dados.bruto,
         km: dados.km,
         comb: dados.comb,
