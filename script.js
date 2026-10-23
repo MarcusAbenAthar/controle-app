@@ -93,6 +93,9 @@ function traduzirErro(mensagemOriginal) {
   if (msg.includes('email not confirmed')) return 'E-mail ainda não confirmado. Verifique a sua caixa de entrada.';
   if (msg.includes('rate limit exceeded') || msg.includes('too many requests')) return 'Muitas tentativas. Aguarde alguns instantes.';
   if (msg.includes('invalid email')) return 'Por favor, insira um endereço de e-mail válido.';
+  if (msg.includes('row-level security') || msg.includes('violates row-level security policy') || msg.includes('permission denied for table') || msg.includes('permission denied')) {
+    return 'A tabela não permite esta operação. Configure as políticas de UPDATE/DELETE do Supabase para o usuário autenticado.';
+  }
 
   return 'Erro: ' + mensagemOriginal;
 }
@@ -190,6 +193,12 @@ function calc() {
 }
 
 async function salvar() {
+  if (!state.usuarioAtual?.id) {
+    alert('Sessão expirada. Faça login novamente.');
+    mostrarAuth();
+    return;
+  }
+
   const dados = calc();
 
   if (!dados.bruto) {
@@ -430,6 +439,12 @@ function cancelarEdicao() {
 }
 
 async function excluirDia(registro) {
+  if (!state.usuarioAtual?.id) {
+    alert('Sessão expirada. Faça login novamente.');
+    mostrarAuth();
+    return;
+  }
+
   const dataFmt = registro.data.split('-').reverse().join('/');
   if (!window.confirm(`Excluir permanentemente o lançamento de ${dataFmt}?`)) return;
 
@@ -556,17 +571,21 @@ function calcularKpis(periodos) {
 }
 
 function getComparacao(periodos, periodoAtual) {
+  if (!Array.isArray(periodos) || !periodos.length) {
+    return 'Sem dados reais para comparar.';
+  }
+
   if (periodos.length < 2) {
-    return 'Sem comparação anterior disponível.';
+    return 'Só existe um período com dados reais no momento.';
   }
 
   const atual = periodos[periodos.length - 1];
   const anterior = periodos[periodos.length - 2];
-  const atualLiquido = atual.liquido;
-  const anteriorLiquido = anterior.liquido || 0;
+  const atualLiquido = Number(atual?.liquido) || 0;
+  const anteriorLiquido = Number(anterior?.liquido) || 0;
 
   if (anteriorLiquido === 0) {
-    return 'Primeiro período em análise.';
+    return 'Primeiro período com dados reais em análise.';
   }
 
   const delta = ((atualLiquido - anteriorLiquido) / anteriorLiquido) * 100;
@@ -626,9 +645,14 @@ function clearDashboardState(message = 'Nenhum dado para relatório.') {
 }
 
 function renderDashboard() {
-  const dias = normalizarDias(state.cacheDias);
+  if (!state.usuarioAtual?.id) {
+    clearDashboardState('Sessão encerrada. Faça login para ver relatórios reais.');
+    return;
+  }
+
+  const dias = normalizarDias(state.cacheDias).filter((dia) => dia && dia.data);
   if (!dias.length) {
-    clearDashboardState('Nenhum dado para relatório.');
+    clearDashboardState('Sem dados reais para relatório. Cadastre pelo menos um lançamento.');
     return;
   }
 
@@ -636,7 +660,7 @@ function renderDashboard() {
 
   const dadosFiltrados = getFilteredDias(dias);
   if (!dadosFiltrados.length) {
-    clearDashboardState('Nenhum dado para o filtro atual.');
+    clearDashboardState('Nenhum dado real para o filtro atual.');
     return;
   }
 
