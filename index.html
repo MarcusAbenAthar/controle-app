@@ -158,15 +158,19 @@
 
       <div id="view-relatorios" class="hidden">
         <div class="card">
-          <div class="inline-actions">
-            <b>Relatórios e Análise</b>
-            <span class="small" id="report-summary">Carregando...</span>
+          <div class="report-heading">
+            <div>
+              <span class="report-eyebrow">Seu negócio em perspectiva</span>
+              <h2>Visão geral</h2>
+              <p class="small" id="report-summary">Carregando...</p>
+            </div>
           </div>
 
           <div class="report-periods">
-            <button class="active" data-period="semanal" type="button">
-              Semanal
+            <button class="active" data-period="diario" type="button">
+              Diário
             </button>
+            <button data-period="semanal" type="button">Semanal</button>
             <button data-period="mensal" type="button">Mensal</button>
             <button data-period="anual" type="button">Anual</button>
           </div>
@@ -191,16 +195,16 @@
 
         <div class="chart-grid">
           <div class="card chart-card">
-            <canvas id="chart-lucro"></canvas>
+            <canvas id="chart-lucro" aria-label="Lucro líquido por período"></canvas>
           </div>
           <div class="card chart-card">
-            <canvas id="chart-lucro-linha"></canvas>
+            <canvas id="chart-lucro-linha" aria-label="Evolução do faturamento e do lucro líquido"></canvas>
           </div>
           <div class="card chart-card">
-            <canvas id="chart-rkm"></canvas>
+            <canvas id="chart-rkm" aria-label="Evolução do lucro líquido por quilômetro"></canvas>
           </div>
-          <div class="card chart-card full">
-            <canvas id="chart-custos"></canvas>
+          <div class="card chart-card">
+            <canvas id="chart-custos" aria-label="Composição dos custos operacionais"></canvas>
           </div>
         </div>
 

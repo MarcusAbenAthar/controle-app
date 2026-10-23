@@ -419,9 +419,32 @@ tbody tr:hover {
 }
 
 #report-summary {
-  margin-top: 12px;
+  margin-top: 7px;
   font-size: 12px;
   color: var(--muted);
+}
+
+.report-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.report-heading h2 {
+  font-size: clamp(22px, 3vw, 28px);
+  letter-spacing: -0.04em;
+}
+
+.report-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--blue-soft);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .report-periods {
@@ -485,15 +508,15 @@ tbody tr:hover {
 }
 
 .chart-card {
-  min-height: 220px;
-  padding: 14px 12px;
+  min-height: 260px;
+  padding: 16px 14px;
   background: linear-gradient(180deg, rgba(18, 23, 31, 0.96), rgba(10, 14, 20, 0.98));
   border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 22px;
 }
 
 .chart-card canvas {
-  max-height: 220px;
+  max-height: 230px;
 }
 
 .kpi-grid {
@@ -590,6 +613,15 @@ tbody tr:hover {
 
   .report-filters {
     grid-template-columns: 1fr;
+  }
+
+  .report-periods {
+    gap: 5px;
+  }
+
+  .report-periods button {
+    padding: 10px 5px;
+    font-size: 12px;
   }
 
   .brand-wrap {

@@ -10,7 +10,7 @@ const state = {
   cacheDias: [],
   modoAuth: 'login',
   activeView: 'lancamentos',
-  activeReport: 'semanal',
+  activeReport: 'diario',
   reportMonth: 'all',
   reportYear: 'all',
   chartInstances: {},
@@ -492,10 +492,22 @@ function getStartOfWeek(dateString) {
   return monday;
 }
 
+function formatDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function getLabelPeriodo(dataKey, periodo) {
+  if (periodo === 'diario') {
+    const date = new Date(`${dataKey}T00:00:00`);
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  }
+
   if (periodo === 'semanal') {
     const date = new Date(`${dataKey}T00:00:00`);
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    return `Sem. ${date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}`;
   }
 
   if (periodo === 'mensal') {
@@ -507,15 +519,17 @@ function getLabelPeriodo(dataKey, periodo) {
   return dataKey;
 }
 
-function agruparPorPeriodo(dias, periodo) {
+function agruparPorPeriodo(dias, periodo, filtros = { mes: 'all', ano: 'all' }) {
   const agrupado = new Map();
 
   dias.forEach((dia) => {
     let key = '';
 
-    if (periodo === 'semanal') {
+    if (periodo === 'diario') {
+      key = dia.data;
+    } else if (periodo === 'semanal') {
       const inicio = getStartOfWeek(dia.data);
-      key = inicio.toISOString().slice(0, 10);
+      key = formatDateKey(inicio);
     } else if (periodo === 'mensal') {
       key = dia.data.slice(0, 7);
     } else {
@@ -549,7 +563,42 @@ function agruparPorPeriodo(dias, periodo) {
     agrupado.set(key, atual);
   });
 
-  return Array.from(agrupado.values()).sort((a, b) => a.periodo.localeCompare(b.periodo));
+  const periodosOrdenados = Array.from(agrupado.values())
+    .sort((a, b) => a.periodo.localeCompare(b.periodo));
+
+  if (periodo !== 'diario' || !periodosOrdenados.length) {
+    return periodosOrdenados;
+  }
+
+  const diasPorData = new Map(periodosOrdenados.map((item) => [item.periodo, item]));
+  const primeiroDia = new Date(`${periodosOrdenados[0].periodo}T00:00:00`);
+  const ultimoDia = new Date(`${periodosOrdenados[periodosOrdenados.length - 1].periodo}T00:00:00`);
+  const resultado = [];
+
+  for (const data = new Date(primeiroDia); data <= ultimoDia; data.setDate(data.getDate() + 1)) {
+    const key = formatDateKey(data);
+    const mes = key.slice(5, 7);
+    const ano = key.slice(0, 4);
+    if ((filtros.mes !== 'all' && mes !== filtros.mes)
+      || (filtros.ano !== 'all' && ano !== filtros.ano)) {
+      continue;
+    }
+
+    resultado.push(diasPorData.get(key) || {
+      periodo: key,
+      label: getLabelPeriodo(key, periodo),
+      bruto: 0,
+      bonus: 0,
+      comb: 0,
+      alim: 0,
+      outros: 0,
+      km: 0,
+      liquido: 0,
+      totalGasto: 0,
+    });
+  }
+
+  return resultado;
 }
 
 function calcularKpis(periodos) {
@@ -664,8 +713,19 @@ function renderDashboard() {
     return;
   }
 
-  const dados = agruparPorPeriodo(dadosFiltrados, state.activeReport);
+  const dados = agruparPorPeriodo(dadosFiltrados, state.activeReport, {
+    mes: state.reportMonth,
+    ano: state.reportYear,
+  });
   const kpis = calcularKpis(dados);
+  const periodosAtivos = dados.filter((item) => (
+    item.bruto + item.bonus + item.liquido + item.totalGasto + item.km !== 0
+  ));
+  const primeiroDia = dadosFiltrados.reduce((menor, dia) => dia.data < menor ? dia.data : menor, dadosFiltrados[0].data);
+  const ultimoDia = dadosFiltrados.reduce((maior, dia) => dia.data > maior ? dia.data : maior, dadosFiltrados[0].data);
+  const intervalo = primeiroDia === ultimoDia
+    ? primeiroDia.split('-').reverse().join('/')
+    : `${primeiroDia.split('-').reverse().join('/')} a ${ultimoDia.split('-').reverse().join('/')}`;
 
   el('report-kpis').innerHTML = `
     <div class="kpi-card">
@@ -676,7 +736,7 @@ function renderDashboard() {
     <div class="kpi-card">
       <span class="label">Lucro líquido</span>
       <span class="value">${formatCurrency(kpis.liquido)}</span>
-      <span class="trend">${getComparacao(dados, state.activeReport)}</span>
+      <span class="trend">${getComparacao(periodosAtivos, state.activeReport)}</span>
     </div>
     <div class="kpi-card">
       <span class="label">Eficiência por KM</span>
@@ -719,16 +779,27 @@ function renderDashboard() {
   renderChart('chart-lucro-linha', {
     type: 'line',
     labels: trendLabels,
-    datasets: [{
-      label: 'Lucro líquido',
-      data: lucroSeries,
-      borderColor: '#2d7dff',
-      backgroundColor: 'rgba(45, 125, 255, 0.14)',
-      tension: 0.35,
-      fill: true,
-      pointBackgroundColor: '#2d7dff',
-    }],
-    title: 'Evolução do lucro líquido',
+    datasets: [
+      {
+        label: 'Faturamento',
+        data: dados.map((item) => item.bruto + item.bonus),
+        borderColor: '#60a5fa',
+        backgroundColor: 'rgba(96, 165, 250, 0.12)',
+        tension: 0.3,
+        fill: false,
+        pointBackgroundColor: '#60a5fa',
+      },
+      {
+        label: 'Lucro líquido',
+        data: lucroSeries,
+        borderColor: '#34d399',
+        backgroundColor: 'rgba(52, 211, 153, 0.12)',
+        tension: 0.3,
+        fill: false,
+        pointBackgroundColor: '#34d399',
+      },
+    ],
+    title: 'Evolução do faturamento e do lucro',
   });
 
   renderChart('chart-rkm', {
@@ -760,7 +831,7 @@ function renderDashboard() {
     title: 'Composição dos custos',
   });
 
-  const tabela = dados.map((item) => `
+  const tabela = periodosAtivos.map((item) => `
     <tr>
       <td>${item.label}</td>
       <td>${formatCurrency(item.bruto + item.bonus)}</td>
@@ -770,7 +841,7 @@ function renderDashboard() {
   `).join('');
 
   el('report-table-body').innerHTML = tabela;
-  el('report-summary').textContent = getComparacao(dados, state.activeReport);
+  el('report-summary').textContent = `${intervalo} • ${dadosFiltrados.length} ${dadosFiltrados.length === 1 ? 'dia com lançamento' : 'dias com lançamento'}`;
 }
 
 function renderChart(canvasId, config) {
@@ -801,6 +872,14 @@ function renderChart(canvasId, config) {
           text: config.title,
           color: '#e8e8e8',
           font: { size: 14 },
+        },
+        tooltip: {
+          callbacks: {
+            label(context) {
+              const label = context.dataset.label ? `${context.dataset.label}: ` : '';
+              return `${label}${formatCurrency(context.parsed.y ?? context.parsed)}`;
+            },
+          },
         },
       },
       scales: config.type === 'bar' || config.type === 'line'
