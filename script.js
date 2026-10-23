@@ -4,6 +4,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_aS4pis5Cve9JBPe7Nv-r1g_4XFZW8qe';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const el = (id) => document.getElementById(id);
+let installPromptEvent;
 
 const state = {
   usuarioAtual: null,
@@ -985,9 +986,41 @@ function setupEventListeners() {
   el('btn-logout').addEventListener('click', fazerLogout);
 }
 
+function setupPwaInstall() {
+  const installButtons = document.querySelectorAll('.install-btn');
+  installButtons.forEach((button) => {
+    button.addEventListener('click', async () => {
+      if (!installPromptEvent) return;
+
+      await installPromptEvent.prompt();
+      await installPromptEvent.userChoice;
+      installPromptEvent = null;
+      installButtons.forEach((installButton) => {
+        installButton.classList.add('hidden');
+      });
+    });
+  });
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    installPromptEvent = event;
+    installButtons.forEach((button) => {
+      button.classList.remove('hidden');
+    });
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installPromptEvent = null;
+    installButtons.forEach((button) => {
+      button.classList.add('hidden');
+    });
+  });
+}
+
 function init() {
   setupDate();
   setupEventListeners();
+  setupPwaInstall();
   updateAuthMode();
   setActiveView('lancamentos');
   calc();

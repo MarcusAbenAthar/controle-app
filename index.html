@@ -6,7 +6,8 @@
     <meta name="theme-color" content="#0f1115" />
     <title>Controle Diário</title>
 
-    <link rel="manifest" href="manifest.json" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="./icons/icon-192.svg" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -43,6 +44,9 @@
       </button>
 
       <div id="auth-msg" class="small"></div>
+      <button class="install-btn hidden" type="button">
+        Instalar aplicativo
+      </button>
     </div>
 
     <div id="app-screen" class="hidden">
@@ -54,7 +58,12 @@
             <h1>Controle Diário</h1>
           </div>
         </div>
-        <button type="button" id="btn-logout" class="logout-btn">Sair</button>
+        <div class="topbar-actions">
+          <button class="install-btn hidden" type="button">
+            Instalar aplicativo
+          </button>
+          <button type="button" id="btn-logout" class="logout-btn">Sair</button>
+        </div>
       </header>
 
       <div class="app-tabs">
